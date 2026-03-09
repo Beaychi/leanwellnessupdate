@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design System: Deep Blue + Coral + White (Sporty Theme) */
+
+@layer base {
+  :root {
+    /* Deep Blue + Coral + White - Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 215 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 25% 15%;
+
+    /* Deep Blue - Primary */
+    --primary: 215 80% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Coral - Secondary */
+    --secondary: 16 85% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Deep Blue variant - Accent */
+    --accent: 215 70% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 215 15% 95%;
+    --muted-foreground: 215 15% 45%;
+
+    --success: 145 65% 42%;
+    --success-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 15% 90%;
+    --input: 215 15% 90%;
+    --ring: 215 80% 45%;
+
+    --radius: 1rem;
+
+    --shadow-soft: 0 2px 8px hsl(215 25% 15% / 0.05);
+    --shadow-medium: 0 4px 16px hsl(215 25% 15% / 0.08);
+    --shadow-strong: 0 8px 32px hsl(215 25% 15% / 0.12);
+
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Chart colors - Light mode */
+    --chart-1: 16 85% 55%;
+    --chart-2: 215 80% 50%;
+    --chart-3: 145 65% 42%;
+  }
+
+  .dark {
+    /* Deep Blue + Coral + White - Dark Mode */
+    --background: 215 25% 10%;
+    --foreground: 215 15% 95%;
+
+    --card: 215 25% 13%;
+    --card-foreground: 215 15% 95%;
+
+    --popover: 215 25% 13%;
+    --popover-foreground: 215 15% 95%;
+
+    /* Deep Blue - Primary (brighter for dark mode) */
+    --primary: 215 80% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Coral - Secondary */
+    --secondary: 16 85% 60%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Deep Blue variant - Accent */
+    --accent: 215 70% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --muted: 215 20% 20%;
+    --muted-foreground: 215 15% 65%;
+
+    --success: 145 65% 48%;
+    --success-foreground: 0 0% 100%;
+
+    --destructive: 0 75% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 20% 22%;
+    --input: 215 20% 22%;
+    --ring: 215 80% 55%;
+
+    /* Chart colors - Dark mode */
+    --chart-1: 16 85% 60%;
+    --chart-2: 215 80% 60%;
+    --chart-3: 145 65% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .rounded-b-3xl {
+    border-bottom-left-radius: 1.5rem;
+    border-bottom-right-radius: 1.5rem;
+  }
+}
+
+@layer utilities {
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .glass-card {
+    @apply bg-card/80 backdrop-blur-sm;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-accent;
+  }
+}

@@ -1,0 +1,32 @@
+project_id = "sdryoloddrtsteebydia"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.send-email-report]
+verify_jwt = false
+
+[functions.send-scheduled-reports]
+verify_jwt = false
+
+[functions.unsubscribe-email]
+verify_jwt = false
+ 
+[functions.analyze-food]
+verify_jwt = false
+
+[functions.send-scheduled-notifications]
+verify_jwt = false
+
+[functions.generate-meal-plan]
+verify_jwt = false
+
+[functions.generate-vapid-keys]
+verify_jwt = false
