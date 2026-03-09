@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { sendEventPush } from "@/lib/push-events";
 
 export default function Meals() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,6 +40,37 @@ export default function Meals() {
 
   const handleFoodLogged = useCallback(() => {
     setJournalRefresh(prev => prev + 1);
+  }, []);
+
+  const sendMealPlanEmail = useCallback(async (planData: MealPlanData) => {
+    const registration = getRegistration();
+    if (!registration?.email) return;
+    
+    try {
+      const { error } = await supabase.functions.invoke('send-meal-plan-email', {
+        body: {
+          email: registration.email,
+          firstName: registration.firstName || 'there',
+          country: planData.country,
+          plan: planData.plan,
+        },
+      });
+      
+      if (error) {
+        console.error('Failed to send meal plan email:', error);
+        return;
+      }
+      
+      toast.success("Meal plan timetable sent to your email! 📧");
+      
+      await sendEventPush(
+        "Meal Plan Emailed! 📧",
+        `Your detailed 7-day ${planData.country} meal timetable has been sent to ${registration.email}`,
+        "leantrack-meal-plan-email"
+      );
+    } catch (err) {
+      console.error('Error sending meal plan email:', err);
+    }
   }, []);
 
   const generateMealPlan = async () => {
@@ -83,6 +115,7 @@ export default function Meals() {
       saveMealPlan(planData);
       setMealPlan(planData);
       toast.success("Your personalized meal plan is ready!");
+      sendMealPlanEmail(planData);
     } catch (error: any) {
       console.error('Error generating meal plan:', error);
       toast.error("Failed to generate meal plan. Please try again.");
@@ -395,6 +428,7 @@ export default function Meals() {
                     saveMealPlan(planData);
                     setMealPlan(planData);
                     toast.success("Your personalized meal plan is ready!");
+                    sendMealPlanEmail(planData);
                   }).catch((err: any) => {
                     console.error('Error generating meal plan:', err);
                     toast.error("Failed to generate meal plan. Please try again.");
