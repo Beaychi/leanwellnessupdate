@@ -60,6 +60,7 @@ export const MealLogDialog = ({ mealId, onAlternativeLogged }: MealLogDialogProp
   const [detectedViolation, setDetectedViolation] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [isSavingToJournal, setIsSavingToJournal] = useState(false);
 
   const resetForm = () => {
     setMode('choose');
@@ -181,6 +182,66 @@ export const MealLogDialog = ({ mealId, onAlternativeLogged }: MealLogDialogProp
     if (text.includes('rice') || text.includes('bread') || text.includes('pasta') || text.includes('noodle') || text.includes('grain')) return 'grain';
     if (text.includes('drink') || text.includes('juice') || text.includes('water') || text.includes('coffee') || text.includes('tea')) return 'beverage';
     return 'other';
+  };
+
+  const saveToFoodJournal = async () => {
+    if (!analysis || !imagePreview) return;
+    setIsSavingToJournal(true);
+    try {
+      const fileName = `food_${Date.now()}.jpg`;
+      const base64Data = imagePreview.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+      const { error: uploadError } = await supabase.storage
+        .from('food-photos')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Failed to save photo');
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('food-photos')
+        .getPublicUrl(fileName);
+
+      const { error: insertError } = await supabase
+        .from('food_entries')
+        .insert({
+          photo_url: urlData.publicUrl,
+          food_name: analysis.food_name,
+          portion_size: analysis.portion_size,
+          calories: analysis.calories,
+          protein: analysis.protein,
+          carbs: analysis.carbs,
+          fats: analysis.fats,
+          ai_analysis: analysis.description,
+          notes: notes || null,
+          meal_type: 'meal',
+          device_id: localStorage.getItem('leantrack_device_id') || 'unknown'
+        });
+
+      if (insertError) {
+        console.error('Insert error:', insertError);
+        toast.error('Failed to save to food journal');
+        return;
+      }
+
+      toast.success('Saved to Food Journal! 📸');
+      window.dispatchEvent(new CustomEvent('foodEntryAdded'));
+    } catch (err) {
+      console.error('Error saving to food journal:', err);
+      toast.error('Failed to save to food journal');
+    } finally {
+      setIsSavingToJournal(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -552,6 +613,27 @@ export const MealLogDialog = ({ mealId, onAlternativeLogged }: MealLogDialogProp
             >
               {detectedViolation ? `Log Violation (Resets Streak)` : 'Log Meal'}
             </Button>
+
+            {mode === 'photo' && analysis && imagePreview && !detectedViolation && (
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                disabled={isSavingToJournal}
+                onClick={saveToFoodJournal}
+              >
+                {isSavingToJournal ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving to Journal...
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-4 w-4" />
+                    Also Save to Food Journal
+                  </>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </DialogContent>
