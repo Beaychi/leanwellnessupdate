@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { country, allergies, schedule, mealTypes } = await req.json();
+    const { country, allergies, schedule, mealTypes, preferences } = await req.json();
 
     const selectedMeals = mealTypes && mealTypes.length > 0 ? mealTypes : ['breakfast', 'lunch', 'dinner'];
     const mealCount = selectedMeals.length;
@@ -20,6 +20,42 @@ serve(async (req) => {
     const allergyText = allergies.length > 0
       ? `The user is allergic to or cannot eat: ${allergies.join(', ')}. COMPLETELY EXCLUDE any meals containing these ingredients.`
       : 'The user has no food allergies.';
+
+    // Build preference context
+    const dietMap: Record<string, string> = {
+      balanced: 'a balanced diet with a healthy mix of protein, carbs, and fats',
+      vegetarian: 'a vegetarian diet (no meat or fish)',
+      vegan: 'a strict vegan diet (no animal products at all)',
+      keto: 'a keto/low-carb diet (high fat, very low carbs, moderate protein)',
+      'high-protein': 'a high-protein diet focused on lean protein sources',
+    };
+    const budgetMap: Record<string, string> = {
+      budget: 'Use only affordable, everyday ingredients commonly found in local markets',
+      moderate: 'Use a balanced mix of affordable and moderately priced ingredients',
+      premium: 'Feel free to include premium or specialty ingredients',
+    };
+    const skillMap: Record<string, string> = {
+      beginner: 'Keep recipes very simple with basic cooking techniques (boiling, frying, mixing). Max 5 ingredients per meal.',
+      intermediate: 'Recipes can use standard cooking techniques. Up to 8 ingredients per meal.',
+      advanced: 'Recipes can be complex with multiple cooking techniques and many ingredients.',
+    };
+    const sourceMap: Record<string, string> = {
+      cook: 'The user cooks all meals at home with full kitchen access.',
+      'buy-some': 'The user sometimes cooks and sometimes buys prepared food. Include some meals that can be easily bought from local vendors/restaurants.',
+      'buy-mostly': 'The user mostly buys food (e.g., a student). Suggest meals that can be bought from local food vendors, canteens, or restaurants with descriptions of what to order. Only include very simple prep meals (like sandwiches, salads).',
+    };
+    const prepMap: Record<string, string> = {
+      quick: 'Each meal must take less than 15 minutes to prepare.',
+      moderate: 'Each meal should take between 15-30 minutes to prepare.',
+      elaborate: 'Meals can take 30+ minutes to prepare.',
+    };
+
+    const prefs = preferences || {};
+    const dietText = dietMap[prefs.dietPreference] || dietMap.balanced;
+    const budgetText = budgetMap[prefs.budgetLevel] || budgetMap.moderate;
+    const skillText = skillMap[prefs.cookingSkill] || skillMap.intermediate;
+    const sourceText = sourceMap[prefs.foodSource] || sourceMap.cook;
+    const prepText = prepMap[prefs.prepTime] || prepMap.moderate;
 
     const mealTimesText = selectedMeals.map((type: string) => {
       if (type === 'breakfast') return `Breakfast at ${schedule?.breakfastTime || '07:30'}`;
@@ -53,6 +89,13 @@ serve(async (req) => {
 
 ${allergyText}
 
+USER PREFERENCES:
+- Diet: The user follows ${dietText}.
+- ${sourceText}
+- ${skillText}
+- ${budgetText}
+- ${prepText}
+
 Schedule: ${mealTimesText}.
 
 IMPORTANT RULES:
@@ -62,7 +105,10 @@ IMPORTANT RULES:
 - Use ingredients commonly available in ${country}
 - Each meal should include nutritional estimates
 - DO NOT include any ingredient the user is allergic to
-- Make meals practical and easy to prepare
+- Make meals practical based on the user's cooking skill and food source
+- AVOID weird or unusual food combinations - stick to traditional, well-known pairings from ${country}'s cuisine
+- For each meal, suggest a fruit or vegetable side dish that complements the meal (include it in the description like "Serve with sliced mango" or "Side: steamed spinach")
+- If the user mostly buys food, describe what to order or buy rather than detailed cooking instructions
 
 Return ONLY valid JSON in this exact format (no markdown, no explanation):
 {

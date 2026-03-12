@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { sendEventPush } from "@/lib/push-events";
+import { MealPlanQuestionnaire, MealPreferences } from "@/components/MealPlanQuestionnaire";
 
 export default function Meals() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -27,6 +28,8 @@ export default function Meals() {
   const [selectedMealTypes, setSelectedMealTypes] = useState<string[]>(['breakfast', 'lunch', 'dinner']);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const [regenerateMealTypes, setRegenerateMealTypes] = useState<string[]>([]);
+  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  const [mealPreferences, setMealPreferences] = useState<MealPreferences | null>(null);
 
   useEffect(() => {
     const data = getStoredData() || getDefaultData();
@@ -73,20 +76,20 @@ export default function Meals() {
     }
   }, []);
 
-  const generateMealPlan = async () => {
+  const generateMealPlan = async (prefs?: MealPreferences, overrideMealTypes?: string[]) => {
     const registration = getRegistration();
     if (!registration || !registration.country) {
       toast.error("Please complete your profile setup first");
       return;
     }
-    if (selectedMealTypes.length === 0) {
+    const mealsToUse = overrideMealTypes || selectedMealTypes;
+    if (mealsToUse.length === 0) {
       toast.error("Please select at least one meal type");
       return;
     }
 
     setIsGenerating(true);
     try {
-      // Build allergy keywords inline
       const allergyKeywords: string[] = [];
       registration.allergies.forEach(allergyId => {
         const allergy = COMMON_ALLERGIES.find(a => a.id === allergyId);
@@ -99,7 +102,8 @@ export default function Meals() {
           country: registration.country,
           allergies: [...new Set(allergyKeywords)],
           schedule: registration.schedule,
-          mealTypes: selectedMealTypes,
+          mealTypes: mealsToUse,
+          preferences: prefs || mealPreferences || undefined,
         },
       });
 
@@ -122,6 +126,12 @@ export default function Meals() {
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleQuestionnaireSubmit = (prefs: MealPreferences) => {
+    setMealPreferences(prefs);
+    setShowQuestionnaire(false);
+    generateMealPlan(prefs);
   };
 
   const isDayLocked = (day: number) => day > currentDay;
@@ -223,7 +233,7 @@ export default function Meals() {
                 </div>
               </div>
 
-              <Button onClick={generateMealPlan} size="lg" className="min-w-48" disabled={selectedMealTypes.length === 0}>
+              <Button onClick={() => setShowQuestionnaire(true)} size="lg" className="min-w-48" disabled={selectedMealTypes.length === 0}>
                 <Sparkles className="h-5 w-5 mr-2" />
                 Generate Meal Plan
               </Button>
@@ -386,7 +396,7 @@ export default function Meals() {
                 className="flex-1"
                 onClick={() => {
                   setShowRegenerateDialog(false);
-                  generateMealPlan();
+                  generateMealPlan(mealPreferences || undefined);
                 }}
               >
                 Keep Same
@@ -397,44 +407,7 @@ export default function Meals() {
                 onClick={() => {
                   setSelectedMealTypes(regenerateMealTypes);
                   setShowRegenerateDialog(false);
-                  // Need to use regenerateMealTypes directly since setState is async
-                  const registration = getRegistration();
-                  if (!registration || !registration.country) {
-                    toast.error("Please complete your profile setup first");
-                    return;
-                  }
-                  setIsGenerating(true);
-                  const allergyKeywords: string[] = [];
-                  registration.allergies.forEach(allergyId => {
-                    const allergy = COMMON_ALLERGIES.find(a => a.id === allergyId);
-                    if (allergy) allergyKeywords.push(...allergy.keywords);
-                  });
-                  allergyKeywords.push(...(registration.customAllergies || []).map(a => a.toLowerCase()));
-                  supabase.functions.invoke('generate-meal-plan', {
-                    body: {
-                      country: registration.country,
-                      allergies: [...new Set(allergyKeywords)],
-                      schedule: registration.schedule,
-                      mealTypes: regenerateMealTypes,
-                    },
-                  }).then(({ data, error }) => {
-                    if (error) throw error;
-                    const planData: MealPlanData = {
-                      country: registration.country,
-                      allergies: allergyKeywords,
-                      plan: data.plan,
-                      generatedAt: new Date().toISOString(),
-                    };
-                    saveMealPlan(planData);
-                    setMealPlan(planData);
-                    toast.success("Your personalized meal plan is ready!");
-                    sendMealPlanEmail(planData);
-                  }).catch((err: any) => {
-                    console.error('Error generating meal plan:', err);
-                    toast.error("Failed to generate meal plan. Please try again.");
-                  }).finally(() => {
-                    setIsGenerating(false);
-                  });
+                  generateMealPlan(mealPreferences || undefined, regenerateMealTypes);
                 }}
               >
                 <Sparkles className="h-4 w-4 mr-1" />
@@ -444,6 +417,14 @@ export default function Meals() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pre-generation questionnaire */}
+      <MealPlanQuestionnaire
+        open={showQuestionnaire}
+        onOpenChange={setShowQuestionnaire}
+        onSubmit={handleQuestionnaireSubmit}
+        isGenerating={isGenerating}
+      />
     </div>
   );
 }
