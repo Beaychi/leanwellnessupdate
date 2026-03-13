@@ -36,7 +36,6 @@ const showNotification = (title: string, body: string, tag: string) => {
       sw.showNotification(title, {
         body,
         icon: "/pwa-192x192.png",
-        badge: "/pwa-192x192.png",
         tag,
         requireInteraction: true,
       } as NotificationOptions);

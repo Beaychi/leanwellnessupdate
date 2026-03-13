@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { pushEvents } from "@/lib/push-events";
+import { startFastingTimerNotification, stopFastingTimerNotification } from "@/lib/timer-notifications";
 
 interface FastingTimerProps {
   isOpen: boolean;
@@ -41,6 +42,17 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
       document.body.style.overflow = 'hidden';
       updateProgress();
       const interval = setInterval(updateProgress, 1000);
+
+      // Start persistent fasting timer notification
+      const state = getFastingState();
+      const proto = state.currentSession
+        ? FASTING_PROTOCOLS.find(p => p.id === state.currentSession?.protocolId)
+        : null;
+      startFastingTimerNotification(proto?.name || 'Custom', () => {
+        const p = getFastingProgress();
+        return p ? { remaining: p.remaining, percentage: p.percentage } : null;
+      });
+
       return () => {
         clearInterval(interval);
         document.body.style.overflow = '';
@@ -50,6 +62,7 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
 
   const handleFastComplete = () => {
     endFastingSession(true);
+    stopFastingTimerNotification();
     
     // Celebration!
     confetti({
@@ -77,6 +90,7 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
 
   const handleEndEarly = () => {
     endFastingSession(false, "Ended early");
+    stopFastingTimerNotification();
     toast.info("Fast ended. Great effort!", { duration: 3000 });
     onClose();
   };

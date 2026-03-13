@@ -7,6 +7,7 @@ import { Timer, Play, Pause, RotateCcw, Trophy, ArrowRight, X } from "lucide-rea
 import { sendNotification } from "@/lib/notifications";
 import { toast } from "sonner";
 import { pushEvents } from "@/lib/push-events";
+import { startExerciseTimerNotification, stopExerciseTimerNotification } from "@/lib/timer-notifications";
 import { logExerciseCompletion } from "@/lib/storage";
 import confetti from "canvas-confetti";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -117,6 +118,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
   const handleTimerComplete = () => {
     setIsRunning(false);
     startTimeRef.current = null;
+    stopExerciseTimerNotification();
     
     // Trigger vibration alert
     triggerVibration();
@@ -150,9 +152,16 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
       // Pausing - save current time left
       pausedTimeLeftRef.current = timeLeft;
       startTimeRef.current = null;
+      stopExerciseTimerNotification();
     } else {
       // Starting - reset start time
       startTimeRef.current = Date.now();
+      // Start persistent timer notification
+      startExerciseTimerNotification(exerciseName, () => {
+        if (startTimeRef.current === null) return pausedTimeLeftRef.current;
+        const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        return Math.max(0, pausedTimeLeftRef.current - elapsed);
+      });
     }
     setIsRunning(!isRunning);
   };
@@ -164,6 +173,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
     startTimeRef.current = null;
     setShowComplete(false);
     setHasCompleted(false);
+    stopExerciseTimerNotification();
   };
 
   const handleContinue = () => {
@@ -209,6 +219,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
     pausedTimeLeftRef.current = defaultDuration * 60;
     startTimeRef.current = null;
     setShowStopConfirm(false);
+    stopExerciseTimerNotification();
   };
 
   const formatTime = (seconds: number) => {

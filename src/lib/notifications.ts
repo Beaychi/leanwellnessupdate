@@ -79,10 +79,9 @@ export const sendNotification = async (title: string, body: string, icon?: strin
 
     new Notification(title, {
       body,
-      icon: icon || "/favicon.ico",
-      badge: "/favicon.ico",
+      icon: icon || "/pwa-192x192.png",
       tag: "leantrack-notification",
-      requireInteraction: true, // Keep notification visible until user interacts
+      requireInteraction: true,
     });
   }
 };
