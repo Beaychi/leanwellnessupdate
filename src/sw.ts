@@ -65,7 +65,6 @@ self.addEventListener('push', (event) => {
   const options: any = {
     body: data.body,
     icon: data.icon || '/pwa-192x192.png',
-    badge: data.badge || '/pwa-192x192.png',
     vibrate: data.vibrate || [200, 100, 200],
     tag: data.tag,
     requireInteraction: data.requireInteraction !== false,
