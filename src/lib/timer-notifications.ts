@@ -1,9 +1,13 @@
 /**
- * Persistent timer notifications that show a live countdown.
- * Uses a single notification with the same tag + renotify:false + silent:true
- * so it updates in-place without popping up repeatedly.
+ * Persistent timer notifications with near-real-time countdown.
  * 
- * Flow: 1 notification on start → silently updates countdown → 1 final notification on complete.
+ * Strategy:
+ * - 1 notification on START (with sound/vibration alert)
+ * - Silent in-place updates every 3s (exercise) / 5s (fasting) for real-time feel
+ * - 1 notification on COMPLETE (with sound/vibration alert)
+ * 
+ * Compatible with Samsung, iPhone, and all major mobile browsers.
+ * Uses service worker showNotification for best mobile support.
  */
 
 const EXERCISE_TAG = "leantrack-exercise-timer";
@@ -19,22 +23,29 @@ const formatTimeShort = (totalSeconds: number): string => {
   if (h > 0) {
     return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
   }
-  return `${String(m).padStart(2, '0')}m ${String(s).padStart(2, '0')}s`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 };
 
 /**
  * Show or silently update an existing notification in-place.
- * renotify: false  → no sound/vibration/visual pop on update
- * silent: true     → no sound
- * same tag         → replaces previous notification content
+ * - isAlert=false → silent in-place update (no sound, no pop-up, no vibration)
+ * - isAlert=true  → first show or completion → sound + vibration allowed
+ * 
+ * Uses same tag to replace previous notification content without stacking.
  */
 const updateTimerNotification = async (
   title: string,
   body: string,
   tag: string,
-  isAlert: boolean = false // true = first show or completion → allow sound/vibration
+  isAlert: boolean = false,
+  showActions: boolean = true
 ) => {
-  if (Notification.permission !== "granted") return;
+  if (typeof Notification === 'undefined' || Notification.permission !== "granted") return;
+
+  const actions = showActions ? [
+    { action: 'pause', title: '⏸ Pause' },
+    { action: 'cancel', title: '✕ Stop' },
+  ] : [];
 
   try {
     const reg = await navigator.serviceWorker?.ready;
@@ -44,12 +55,24 @@ const updateTimerNotification = async (
         icon: "/pwa-192x192.png",
         tag,
         silent: !isAlert,
-        renotify: isAlert, // only re-alert on start and completion
+        renotify: isAlert,
         requireInteraction: true,
+        actions,
       } as NotificationOptions);
     }
   } catch (e) {
-    console.log("[TimerNotif] Could not show notification:", e);
+    // Fallback for browsers without service worker
+    try {
+      new Notification(title, {
+        body,
+        icon: "/pwa-192x192.png",
+        tag,
+        silent: !isAlert,
+        requireInteraction: true,
+      } as NotificationOptions);
+    } catch {
+      console.log("[TimerNotif] Could not show notification");
+    }
   }
 };
 
@@ -71,9 +94,9 @@ export const startExerciseTimerNotification = (
   exerciseName: string,
   getTimeLeft: () => number
 ) => {
-  stopExerciseTimerNotification(false); // don't clear — we'll replace it
+  stopExerciseTimerNotification(false);
 
-  // Initial notification (with alert so user sees it)
+  // Initial notification (with alert so user sees/hears it)
   const initialTime = getTimeLeft();
   updateTimerNotification(
     `🏋️ ${exerciseName}`,
@@ -82,16 +105,17 @@ export const startExerciseTimerNotification = (
     true
   );
 
-  // Silent updates every 15s — just updates the text in place
+  // Silent updates every 3 seconds for near-real-time countdown
   exerciseInterval = window.setInterval(() => {
     const timeLeft = getTimeLeft();
     if (timeLeft <= 0) {
-      // Completion alert
+      // Completion alert (with sound/vibration, no actions needed)
       updateTimerNotification(
-        `🏋️ ${exerciseName} — Done!`,
+        `✅ ${exerciseName} — Done!`,
         `Great job! You completed your exercise! 💪`,
         EXERCISE_TAG,
-        true
+        true,
+        false
       );
       if (exerciseInterval) {
         window.clearInterval(exerciseInterval);
@@ -99,14 +123,14 @@ export const startExerciseTimerNotification = (
       }
       return;
     }
-    // Silent in-place update
+    // Silent in-place update — just changes the text
     updateTimerNotification(
       `🏋️ ${exerciseName}`,
       `⏱ ${formatTimeShort(timeLeft)} remaining`,
       EXERCISE_TAG,
       false
     );
-  }, 15000);
+  }, 3000);
 };
 
 export const stopExerciseTimerNotification = (clear: boolean = true) => {
@@ -138,15 +162,16 @@ export const startFastingTimerNotification = (
     );
   }
 
-  // Silent updates every 30s
+  // Silent updates every 5 seconds for real-time countdown
   fastingInterval = window.setInterval(() => {
     const data = getRemaining();
     if (!data || data.remaining <= 0) {
       updateTimerNotification(
-        `🔥 ${protocolName} Fast — Complete!`,
+        `✅ ${protocolName} Fast — Complete!`,
         `Amazing discipline! Your fast is done! 🎉`,
         FASTING_TAG,
-        true
+        true,
+        false
       );
       if (fastingInterval) {
         window.clearInterval(fastingInterval);
@@ -161,7 +186,7 @@ export const startFastingTimerNotification = (
       FASTING_TAG,
       false
     );
-  }, 30000);
+  }, 5000);
 };
 
 export const stopFastingTimerNotification = (clear: boolean = true) => {

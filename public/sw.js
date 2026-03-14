@@ -62,8 +62,28 @@ self.addEventListener('push', (event) => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.action);
+  console.log('[SW] Notification clicked:', event.action, 'tag:', event.notification.tag);
   
+  const tag = event.notification.tag || '';
+  const isTimerNotification = tag.startsWith('leantrack-exercise-timer') || tag.startsWith('leantrack-fasting-timer');
+
+  // Handle timer-specific actions
+  if (isTimerNotification && (event.action === 'pause' || event.action === 'cancel')) {
+    event.notification.close();
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          client.postMessage({
+            type: 'TIMER_ACTION',
+            action: event.action,
+            timerType: tag.includes('exercise') ? 'exercise' : 'fasting',
+          });
+        }
+      })
+    );
+    return;
+  }
+
   event.notification.close();
 
   if (event.action === 'dismiss') {
@@ -73,13 +93,11 @@ self.addEventListener('notificationclick', (event) => {
   // Open or focus the app
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Try to focus existing window
       for (const client of clientList) {
         if ('focus' in client) {
           return client.focus();
         }
       }
-      // Open new window if no existing one
       if (clients.openWindow) {
         return clients.openWindow('/');
       }
