@@ -8,6 +8,7 @@ import { sendNotification } from "@/lib/notifications";
 import { toast } from "sonner";
 import { pushEvents } from "@/lib/push-events";
 import { startExerciseTimerNotification, stopExerciseTimerNotification } from "@/lib/timer-notifications";
+import { setActiveTimer } from "@/lib/active-timer";
 import { logExerciseCompletion } from "@/lib/storage";
 import confetti from "canvas-confetti";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -145,6 +146,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
     );
     toast.success(`${exerciseName} complete!`);
     pushEvents.exerciseCompleted(exerciseName);
+    setActiveTimer(null);
   };
 
   const handleStartPause = () => {
@@ -153,6 +155,14 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
       pausedTimeLeftRef.current = timeLeft;
       startTimeRef.current = null;
       stopExerciseTimerNotification();
+      setActiveTimer({
+        type: 'exercise',
+        name: exerciseName,
+        startedAt: Date.now(),
+        totalDuration: defaultDuration * 60,
+        elapsedBefore: defaultDuration * 60 - timeLeft,
+        paused: true,
+      });
     } else {
       // Starting - reset start time
       startTimeRef.current = Date.now();
@@ -162,9 +172,33 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
         const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
         return Math.max(0, pausedTimeLeftRef.current - elapsed);
       });
+      setActiveTimer({
+        type: 'exercise',
+        name: exerciseName,
+        startedAt: Date.now(),
+        totalDuration: defaultDuration * 60,
+        elapsedBefore: defaultDuration * 60 - timeLeft,
+        paused: false,
+      });
     }
     setIsRunning(!isRunning);
   };
+
+  // Listen for floating widget actions
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail.action === 'pause' && isRunning) {
+        handleStartPause();
+      } else if (detail.action === 'resume' && !isRunning) {
+        handleStartPause();
+      } else if (detail.action === 'cancel') {
+        handleCloseTimer();
+      }
+    };
+    window.addEventListener('floatingTimerAction', handler);
+    return () => window.removeEventListener('floatingTimerAction', handler);
+  }, [isRunning]);
 
   const handleReset = () => {
     setIsRunning(false);
@@ -174,6 +208,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
     setShowComplete(false);
     setHasCompleted(false);
     stopExerciseTimerNotification();
+    setActiveTimer(null);
   };
 
   const handleContinue = () => {
@@ -220,6 +255,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
     startTimeRef.current = null;
     setShowStopConfirm(false);
     stopExerciseTimerNotification();
+    setActiveTimer(null);
   };
 
   const formatTime = (seconds: number) => {

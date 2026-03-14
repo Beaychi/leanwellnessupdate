@@ -14,6 +14,7 @@ import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { pushEvents } from "@/lib/push-events";
 import { startFastingTimerNotification, stopFastingTimerNotification } from "@/lib/timer-notifications";
+import { setActiveTimer } from "@/lib/active-timer";
 
 interface FastingTimerProps {
   isOpen: boolean;
@@ -48,10 +49,26 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
       const proto = state.currentSession
         ? FASTING_PROTOCOLS.find(p => p.id === state.currentSession?.protocolId)
         : null;
-      startFastingTimerNotification(proto?.name || 'Custom', () => {
+      const protocolName = proto?.name || 'Custom';
+      const totalDuration = (proto?.fastingHours || 16) * 3600;
+      
+      startFastingTimerNotification(protocolName, () => {
         const p = getFastingProgress();
         return p ? { remaining: p.remaining, percentage: p.percentage } : null;
       });
+
+      // Set active timer for floating widget
+      const currentProgress = getFastingProgress();
+      if (currentProgress && currentProgress.remaining > 0) {
+        setActiveTimer({
+          type: 'fasting',
+          name: `${protocolName} Fast`,
+          startedAt: Date.now(),
+          totalDuration: totalDuration,
+          elapsedBefore: currentProgress.elapsed,
+          paused: false,
+        });
+      }
 
       return () => {
         clearInterval(interval);
@@ -63,6 +80,7 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
   const handleFastComplete = () => {
     endFastingSession(true);
     stopFastingTimerNotification();
+    setActiveTimer(null);
     
     // Celebration!
     confetti({
@@ -91,6 +109,7 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
   const handleEndEarly = () => {
     endFastingSession(false, "Ended early");
     stopFastingTimerNotification();
+    setActiveTimer(null);
     toast.info("Fast ended. Great effort!", { duration: 3000 });
     onClose();
   };
