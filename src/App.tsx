@@ -16,12 +16,10 @@ import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import { Registration } from "./components/Registration";
 import { BottomNav } from "./components/BottomNav";
-import { FloatingTimerWidget } from "./components/FloatingTimerWidget";
 import { getStoredData, getDefaultData, saveStoredData } from "./lib/storage";
 import { getRegistration } from "./lib/registration";
 import { startNotificationService, initializeNotificationTracking } from "./lib/notifications";
 import { registerServiceWorker } from "./lib/push-notifications";
-import { setActiveTimer } from "./lib/active-timer";
 import { stopExerciseTimerNotification, stopFastingTimerNotification } from "./lib/timer-notifications";
 
 const queryClient = new QueryClient();
@@ -56,18 +54,16 @@ const App = () => {
     }
   }, []);
 
-  // Listen for service worker timer action messages
+  // Listen for service worker timer action messages (from notification buttons)
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       if (event.data?.type === 'TIMER_ACTION') {
         const { action } = event.data;
-        if (action === 'pause' || action === 'cancel') {
-          window.dispatchEvent(new CustomEvent('floatingTimerAction', { detail: { action } }));
-          if (action === 'cancel') {
-            setActiveTimer(null);
-            stopExerciseTimerNotification();
-            stopFastingTimerNotification();
-          }
+        // Forward to whichever timer is active (ExerciseTimer / FastingTimer listen for this)
+        window.dispatchEvent(new CustomEvent('timerNotificationAction', { detail: { action } }));
+        if (action === 'stop' || action === 'cancel') {
+          stopExerciseTimerNotification();
+          stopFastingTimerNotification();
         }
       }
     };
@@ -100,7 +96,6 @@ const App = () => {
                 <Route path="/install" element={<Install />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              <FloatingTimerWidget />
               <BottomNav />
             </div>
           </BrowserRouter>

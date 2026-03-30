@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getStoredData, getCurrentDayNumber } from "@/lib/storage";
+import { getMealPlan } from "@/lib/meal-plan";
 import { CheckCircle2, Calendar, Flame, TrendingUp, Award, Trophy } from "lucide-react";
 import confetti from "canvas-confetti";
 import { toast } from "sonner";
@@ -64,11 +65,16 @@ export default function Progress() {
       const mealsToday = data.completedMeals[today]?.length || 0;
       const streakDays = data.streakDays || 0;
       
+      const currentDay = getCurrentDayNumber(data.startDate);
+      const mealPlan = getMealPlan();
+      const dayPlan = mealPlan?.plan.find(d => d.day === currentDay);
+      const totalMealsToday = dayPlan?.meals.length || 3;
+
       setStats({
-        currentDay: getCurrentDayNumber(data.startDate),
+        currentDay,
         streakDays: streakDays,
         completedMealsToday: mealsToday,
-        totalMealsToday: 2,
+        totalMealsToday,
         startDate: data.startDate,
       });
 

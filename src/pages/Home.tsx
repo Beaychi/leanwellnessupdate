@@ -84,9 +84,12 @@ export default function Home() {
   }, [celebratedAllMeals, triggerAllMealsCelebration]);
 
   useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    let lastCheckedDate = today;
     const checkDate = () => {
-      const now = new Date();
-      if (now.getHours() === 0 && now.getMinutes() === 0) {
+      const current = new Date().toISOString().split('T')[0];
+      if (current !== lastCheckedDate) {
+        lastCheckedDate = current;
         setCelebratedAllMeals(false);
       }
     };

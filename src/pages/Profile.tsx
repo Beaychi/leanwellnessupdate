@@ -72,40 +72,18 @@ export default function Profile() {
   useEffect(() => {
     const data = getStoredData();
     if (data) setSettings(data);
-    loadEmailSubscription();
+    initEmail();
   }, []);
 
-  // Also check registration data as fallback for email/preferences
-  useEffect(() => {
-    const loadRegistrationFallback = async () => {
-      // Wait a tick to let loadEmailSubscription run first
-      await new Promise(r => setTimeout(r, 500));
-      if (!email) {
-        try {
-          const regData = localStorage.getItem('leantrack_registration');
-          if (regData) {
-            const reg = JSON.parse(regData);
-            if (reg.email && reg.email.trim()) {
-              setEmail(reg.email);
-              setWeeklyReports(reg.weeklyReports ?? true);
-              setMonthlyReports(reg.monthlyReports ?? true);
-            }
-          }
-        } catch {}
-      }
-    };
-    loadRegistrationFallback();
-  }, []);
-
-  const loadEmailSubscription = async () => {
+  const initEmail = async () => {
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('email_subscriptions')
         .select('*')
         .limit(1)
         .maybeSingle();
-      
-      if (data) {
+
+      if (data?.email) {
         setEmail(data.email);
         setWeeklyReports(data.weekly_reports);
         setMonthlyReports(data.monthly_reports);
@@ -113,10 +91,24 @@ export default function Profile() {
         setSavedEmail(data.email);
         setSavedWeeklyReports(data.weekly_reports);
         setSavedMonthlyReports(data.monthly_reports);
+        return;
       }
     } catch (error) {
       console.error('Error loading email subscription:', error);
     }
+
+    // Fall back to registration data if no Supabase record found
+    try {
+      const regData = localStorage.getItem('leantrack_registration');
+      if (regData) {
+        const reg = JSON.parse(regData);
+        if (reg.email?.trim()) {
+          setEmail(reg.email);
+          setWeeklyReports(reg.weeklyReports ?? true);
+          setMonthlyReports(reg.monthlyReports ?? true);
+        }
+      }
+    } catch {}
   };
 
   const handleSaveEmail = async () => {

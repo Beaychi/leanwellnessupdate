@@ -144,10 +144,6 @@ export default function Meals() {
   };
 
   const currentDayPlan = mealPlan?.plan.find(d => d.day === parseInt(selectedDay));
-  const filteredMeals = currentDayPlan?.meals.filter(meal =>
-    meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    meal.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="min-h-screen pb-20 md:pb-8">
@@ -286,46 +282,52 @@ export default function Meals() {
                 })}
               </TabsList>
 
-              {mealPlan.plan.map(day => (
-                <TabsContent key={day.day} value={day.day.toString()}>
-                  <div className="space-y-6">
-                    <Card className="bg-muted/50">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="font-semibold text-lg">
-                            Day {day.day}
-                            {day.day === currentDay && (
-                              <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                                Today
-                              </span>
-                            )}
-                          </h3>
-                          <div className="text-sm text-muted-foreground flex items-center gap-2">
-                            <Droplets className="h-4 w-4 text-primary" /> {day.waterIntake}
+              {mealPlan.plan.map(day => {
+                const dayMeals = day.meals.filter(meal =>
+                  meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  meal.description.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                return (
+                  <TabsContent key={day.day} value={day.day.toString()}>
+                    <div className="space-y-6">
+                      <Card className="bg-muted/50">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-semibold text-lg">
+                              Day {day.day}
+                              {day.day === currentDay && (
+                                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                                  Today
+                                </span>
+                              )}
+                            </h3>
+                            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                              <Droplets className="h-4 w-4 text-primary" /> {day.waterIntake}
+                            </div>
                           </div>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{day.notes}</p>
-                      </CardContent>
-                    </Card>
+                          <p className="text-sm text-muted-foreground">{day.notes}</p>
+                        </CardContent>
+                      </Card>
 
-                    <div className="space-y-3">
-                      {filteredMeals && filteredMeals.length > 0 ? (
-                        filteredMeals.map(meal => (
-                          <DynamicMealCard key={meal.id} meal={meal} />
-                        ))
-                      ) : (
-                        <Card>
-                          <CardContent className="p-8 text-center">
-                            <p className="text-muted-foreground">
-                              {searchTerm ? `No meals found matching "${searchTerm}"` : 'No meals for this day'}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      )}
+                      <div className="space-y-3">
+                        {dayMeals.length > 0 ? (
+                          dayMeals.map(meal => (
+                            <DynamicMealCard key={meal.id} meal={meal} />
+                          ))
+                        ) : (
+                          <Card>
+                            <CardContent className="p-8 text-center">
+                              <p className="text-muted-foreground">
+                                {searchTerm ? `No meals found matching "${searchTerm}"` : 'No meals for this day'}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </TabsContent>
-              ))}
+                  </TabsContent>
+                );
+              })}
             </Tabs>
 
             {/* Water Reminder */}
