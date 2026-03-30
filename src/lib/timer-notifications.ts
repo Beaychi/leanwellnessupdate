@@ -90,7 +90,7 @@ export const startExerciseTimerNotification = (
   exerciseName: string,
   getTimeLeft: () => number,
 ) => {
-  stopExerciseTimerNotification(false);
+  stopExerciseTimerNotification(false); // don't clear — we'll replace it
 
   const tick = (isFirst: boolean) => {
     const timeLeft = getTimeLeft();

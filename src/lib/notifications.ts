@@ -70,49 +70,19 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   return false;
 };
 
-export const sendNotification = async (title: string, body: string, icon?: string, withSound: boolean = true, customTag?: string) => {
-  if (typeof Notification === 'undefined' || Notification.permission !== "granted") return;
-
-  // Play alarm sound
-  if (withSound) {
-    await playAlarmSound();
-  }
-
-  // Use a unique tag based on title + timestamp to avoid collisions with timer notifications
-  const tag = customTag || `leantrack-alert-${Date.now()}`;
-
-  try {
-    // Prefer service worker for better mobile compatibility (Samsung, iPhone, etc.)
-    const reg = await navigator.serviceWorker?.ready;
-    if (reg) {
-      await reg.showNotification(title, {
-        body,
-        icon: icon || "/pwa-192x192.png",
-        tag,
-        vibrate: [200, 100, 200],
-        requireInteraction: true,
-        renotify: true,
-        silent: false,
-      } as NotificationOptions);
-    } else {
-      new Notification(title, {
-        body,
-        icon: icon || "/pwa-192x192.png",
-        tag,
-        requireInteraction: true,
-      });
+export const sendNotification = async (title: string, body: string, icon?: string, withSound: boolean = true) => {
+  if (Notification.permission === "granted") {
+    // Play alarm sound
+    if (withSound) {
+      await playAlarmSound();
     }
-  } catch (e) {
-    // Final fallback
-    try {
-      new Notification(title, {
-        body,
-        icon: icon || "/pwa-192x192.png",
-        requireInteraction: true,
-      });
-    } catch {
-      console.log('[Notification] Could not show notification');
-    }
+
+    new Notification(title, {
+      body,
+      icon: icon || "/pwa-192x192.png",
+      tag: "leantrack-notification",
+      requireInteraction: true,
+    });
   }
 };
 

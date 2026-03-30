@@ -113,6 +113,7 @@ export const ExerciseTimer = ({ exerciseId, exerciseName, defaultDuration }: Exe
     } else {
       handleResume();
     }
+    setIsRunning(!isRunning);
   };
 
   const handleReset = () => {
