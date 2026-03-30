@@ -12,13 +12,19 @@ interface WaterTrackerProps {
   dailyGoal?: number;
 }
 
+const getTodayKey = () => new Date().toISOString().split('T')[0];
+
 export function WaterTracker({ dailyGoal = 8 }: WaterTrackerProps) {
   const [glasses, setGlasses] = useState(0);
-  const [celebrated, setCelebrated] = useState(false);
+  const [celebratedDate, setCelebratedDate] = useState<string | null>(null);
   const [lastChangedIndex, setLastChangedIndex] = useState<number | null>(null);
 
   useEffect(() => {
     setGlasses(getWaterIntakeToday());
+    const stored = localStorage.getItem('leantrack_water_celebrated');
+    if (stored === getTodayKey()) {
+      setCelebratedDate(stored);
+    }
   }, []);
 
   const triggerCelebration = () => {
@@ -45,8 +51,10 @@ export function WaterTracker({ dailyGoal = 8 }: WaterTrackerProps) {
     // Clear animation after it completes
     setTimeout(() => setLastChangedIndex(null), 500);
     
-    if (newCount >= dailyGoal && !celebrated) {
-      setCelebrated(true);
+    const today = getTodayKey();
+    if (newCount >= dailyGoal && celebratedDate !== today) {
+      setCelebratedDate(today);
+      localStorage.setItem('leantrack_water_celebrated', today);
       triggerCelebration();
       pushEvents.waterGoalReached();
     } else if (newCount < dailyGoal) {
@@ -65,12 +73,11 @@ export function WaterTracker({ dailyGoal = 8 }: WaterTrackerProps) {
       setTimeout(() => setLastChangedIndex(null), 500);
       
       if (newCount < dailyGoal) {
-        setCelebrated(false);
+        setCelebratedDate(null);
+        localStorage.removeItem('leantrack_water_celebrated');
       }
     }
   };
-
-  const percentage = Math.min((glasses / dailyGoal) * 100, 100);
 
   return (
     <Card>

@@ -28,7 +28,7 @@ export const NotificationPrompt = ({ onDismiss }: NotificationPromptProps) => {
           dinner: data.mealReminders.dinner,
           bedtime: data.bedtime,
           wakeupTime: data.wakeupTime || '06:00',
-          movementInterval: 20,
+          movementInterval: data.movementInterval || 45,
         }, data.movementReminders);
         
         sendTestNotification();

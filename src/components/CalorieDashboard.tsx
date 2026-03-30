@@ -151,8 +151,7 @@ export default function CalorieDashboard() {
       return;
     }
 
-    const data = getStoredData();
-    saveStoredData({ ...data, calorieGoal: tempGoal });
+    saveStoredData({ calorieGoal: tempGoal });
     setCalorieGoal(tempGoal);
     setShowGoalSettings(false);
     toast.success("Calorie goal updated!");

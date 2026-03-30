@@ -331,9 +331,19 @@ export const markMealComplete = (mealId: string) => {
   window.dispatchEvent(new CustomEvent('mealCompleted'));
   window.dispatchEvent(new CustomEvent('dataUpdated'));
   
-  // Check if all meals for today are complete (2 meals per day)
+  // Check if all meals for today are complete
   const completedCount = data.completedMeals[today]?.length || 0;
-  if (completedCount >= 2) {
+  let totalMealsToday = 3; // fallback default
+  try {
+    const plan = localStorage.getItem('leantrack_meal_plan');
+    if (plan) {
+      const parsed = JSON.parse(plan);
+      const dayNumber = getCurrentDayNumber(data.startDate);
+      const dayPlan = parsed.plan?.find((d: any) => d.day === dayNumber);
+      if (dayPlan?.meals?.length) totalMealsToday = dayPlan.meals.length;
+    }
+  } catch {}
+  if (completedCount >= totalMealsToday) {
     window.dispatchEvent(new CustomEvent('allMealsCompleted'));
   }
 };

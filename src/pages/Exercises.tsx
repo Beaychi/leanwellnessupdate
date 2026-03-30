@@ -31,7 +31,7 @@ export default function Exercises() {
         <ExerciseStatsDialog />
 
         {/* Category Filter */}
-        <Tabs value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as any)}>
+        <Tabs value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as "all" | "cardio" | "strength" | "office")}>
           <TabsList className="w-full grid grid-cols-4">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="cardio">Cardio</TabsTrigger>

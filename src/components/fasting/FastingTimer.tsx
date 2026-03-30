@@ -61,9 +61,17 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
   }, [isOpen, updateProgress]);
 
   const handleFastComplete = () => {
+    // Get fresh state to avoid stale closure issues
+    const currentState = getFastingState();
+    const currentProtocol = currentState.currentSession
+      ? FASTING_PROTOCOLS.find(p => p.id === currentState.currentSession?.protocolId)
+      : null;
+    const protocolName = currentProtocol?.name || 'Custom';
+
     endFastingSession(true);
     stopFastingTimerNotification();
-    
+    setActiveTimer(null);
+
     // Celebration!
     confetti({
       particleCount: 200,
@@ -82,7 +90,6 @@ export const FastingTimer = ({ isOpen, onClose, onFastComplete }: FastingTimerPr
     });
 
     // Send background push notification
-    const protocolName = protocol?.name || 'Custom';
     pushEvents.fastingComplete(protocolName);
 
     onFastComplete();

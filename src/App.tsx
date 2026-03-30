@@ -20,6 +20,7 @@ import { getStoredData, getDefaultData, saveStoredData } from "./lib/storage";
 import { getRegistration } from "./lib/registration";
 import { startNotificationService, initializeNotificationTracking } from "./lib/notifications";
 import { registerServiceWorker } from "./lib/push-notifications";
+import { stopExerciseTimerNotification, stopFastingTimerNotification } from "./lib/timer-notifications";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,23 @@ const App = () => {
         movementInterval: data.movementInterval || 45,
       }, data.movementReminders);
     }
+  }, []);
+
+  // Listen for service worker timer action messages (from notification buttons)
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'TIMER_ACTION') {
+        const { action } = event.data;
+        // Forward to whichever timer is active (ExerciseTimer / FastingTimer listen for this)
+        window.dispatchEvent(new CustomEvent('timerNotificationAction', { detail: { action } }));
+        if (action === 'stop' || action === 'cancel') {
+          stopExerciseTimerNotification();
+          stopFastingTimerNotification();
+        }
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handler);
+    return () => navigator.serviceWorker?.removeEventListener('message', handler);
   }, []);
 
   return (
