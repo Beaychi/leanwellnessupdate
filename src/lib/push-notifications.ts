@@ -2,6 +2,19 @@ import { supabase } from "@/integrations/supabase/client";
 
 const VAPID_PUBLIC_KEY = 'BGZK9HEnXRrnHK__JHZ2NtSa253MP_m_wMg_N8BgS0Z5gzI2BXtsIPJ3eClVVAWeVTcYjrcDsS4ckOdqhJDhYPc';
 
+// The supabase client already sends x-device-id as a global header (see client.ts).
+// We read the same key here so the column value in INSERT matches what RLS sees.
+const DEVICE_ID_KEY = 'leantrack_device_id';
+
+export function getDeviceId(): string {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  }
+  return id;
+}
+
 // Sound options available for notifications
 export const SOUND_OPTIONS = [
   { id: 'chime', name: 'Chime', description: 'Soft melodic tone' },
@@ -119,6 +132,7 @@ async function saveSubscription(subscription: PushSubscription): Promise<void> {
       p256dh: key.p256dh,
       auth: key.auth,
       user_agent: navigator.userAgent,
+      device_id: getDeviceId(),
     }, {
       onConflict: 'endpoint',
     });
@@ -201,6 +215,7 @@ export async function saveNotificationSettings(
     .upsert({
       subscription_id: subscription.id,
       timezone_offset: timezoneOffset,
+      device_id: getDeviceId(),
       ...settings,
     }, {
       onConflict: 'subscription_id',
