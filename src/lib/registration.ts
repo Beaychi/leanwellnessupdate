@@ -28,6 +28,7 @@ export interface UserRegistration {
     worksOutside: boolean;
   };
   registrationCompleted: boolean;
+  skippedRegistration?: boolean;
 }
 
 const REGISTRATION_KEY = 'leantrack_registration';

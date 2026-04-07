@@ -1,7 +1,17 @@
 {
   "permissions": {
     "allow": [
-      "Bash(powershell -Command \"Get-Date -Format 'yyyyMMddHHmmss'\")"
+      "Bash(powershell -Command \"Get-Date -Format 'yyyyMMddHHmmss'\")",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:unsplash.com)",
+      "WebFetch(domain:images.unsplash.com)",
+      "Read(//c/Users/Elitebook 830 G8/.claire/projects/c--Users-Elitebook-830-G8-Documents-leantrack-wellness-main/653b27b8-2193-4d11-b093-3294bec76bc3/tool-results/**)",
+      "WebSearch",
+      "WebFetch(domain:source.unsplash.com)",
+      "WebFetch(domain:tutorials.sitecast.com)",
+      "WebFetch(domain:noembed.com)",
+      "WebFetch(domain:awik.io)",
+      "WebFetch(domain:splashfinder.app)"
     ]
   }
 }

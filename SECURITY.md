@@ -319,56 +319,6 @@ We commit to:
 
 ---
 
-## 12. April 2026 Security Audit — Issues Fixed
-
-Seven issues were identified and resolved in migration `20260407134930_security_hardening.sql`
-and related client-side changes.
-
-### Ownership model — `device_id` + `x-device-id` header
-
-All user-data tables now carry a `device_id TEXT` column. The Supabase client in
-`src/integrations/supabase/client.ts` attaches `x-device-id: <uuid>` to every request
-via `global.headers`. RLS policies read it with:
-```sql
-current_setting('request.headers', true)::json ->> 'x-device-id'
-```
-
-**Rule:** Every INSERT/UPDATE/DELETE policy on a user-data table MUST include this check.
-Never fall back to `NULL` or `'unknown'` — both are now explicitly rejected.
-
-### Fix 1 — `push_subscriptions`: wildcard INSERT, no ownership on write
-- Added `device_id TEXT` column + index.
-- INSERT: `device_id IS NOT NULL AND device_id = header`.
-- UPDATE/DELETE: same ownership `USING(...)`.
-- SELECT: `service_role` only.
-
-### Fix 2 — `notification_settings`: INSERT didn't verify subscription ownership
-- Added `device_id TEXT` column + index.
-- INSERT: checks `device_id = header` AND `push_subscriptions.device_id = header`.
-- UPDATE/DELETE: `device_id = header`.
-
-### Fix 3 — `food_entries`: `'unknown'` accepted as device_id
-- Client (`FoodPhotoCapture.tsx`, `MealLogDialog.tsx`): replaced `|| 'unknown'` with `getDeviceId()`.
-- Migration: INSERT policy rejects `'unknown'` and values shorter than 8 chars.
-
-### Fix 4 — `email_subscriptions`: no server-side email format validation
-- Added CHECK constraint: `email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'`.
-- INSERT policy: rejects NULL and whitespace-only values.
-
-### Fix 5 — `food-photos` storage: anonymous uploads allowed
-- Upload policy now requires non-null `x-device-id` header.
-- Path traversal (`..`) blocked in folder name.
-
-### Fix 6 — Supabase client: `x-device-id` header not reliably sent
-- `_getOrCreateDeviceId()` called once at module load in `client.ts`.
-- Stored in `global.headers` on the shared client instance — applies to all requests.
-
-### Fix 7 — `saveSubscription` / `saveNotificationSettings`: `device_id` missing from upsert body
-- Both functions in `push-notifications.ts` now include `device_id: getDeviceId()` in
-  the upsert payload so the inserted value matches what RLS checks.
-
----
-
 ## 12. Project-Specific Recommendations
 
 ### 12.1 Critical (Fix Immediately)

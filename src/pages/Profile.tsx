@@ -13,10 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  User, Moon, Sun, Palette, Mail, Send, Camera, Pencil, Save, CheckCircle2
+import {
+  User, Moon, Sun, Palette, Mail, Send, Camera, Pencil, Save, CheckCircle2, Lock, AlertCircle
 } from "lucide-react";
 import { getStoredData, saveStoredData, getDefaultData } from "@/lib/storage";
+import { getRegistration } from "@/lib/registration";
 import { toast } from "sonner";
 import { startNotificationService } from "@/lib/notifications";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +58,10 @@ export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editProfile, setEditProfile] = useState<UserProfile>(profile);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const registration = getRegistration();
+  const isRegistrationCompleted = registration?.registrationCompleted === true;
+  const isRegistrationSkipped = registration?.skippedRegistration === true && !isRegistrationCompleted;
   
   // Email reports state
   const [email, setEmail] = useState("");
@@ -260,6 +265,31 @@ export default function Profile() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 space-y-6">
+
+        {/* Complete profile banner — shown when user skipped registration */}
+        {isRegistrationSkipped && (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground">Your profile is incomplete</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Complete your profile to personalise your meal plan, exercise recommendations, and reminders.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => window.dispatchEvent(new CustomEvent('showRegistration'))}
+                >
+                  Complete
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Personal Info (edit mode) */}
         {isEditing && (
           <Card>
@@ -270,28 +300,64 @@ export default function Profile() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="fullName">Full Name</Label>
-                <Input id="fullName" placeholder="Enter your full name" value={editProfile.fullName} onChange={e => setEditProfile(prev => ({ ...prev, fullName: e.target.value }))} maxLength={100} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="age">Age</Label>
-                  <Input id="age" type="number" min="1" max="120" placeholder="Age" value={editProfile.age} onChange={e => setEditProfile(prev => ({ ...prev, age: e.target.value }))} />
+              {isRegistrationCompleted ? (
+                /* Locked identity fields — set during registration, reset-only */
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/60 border border-border">
+                    <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Full Name</p>
+                      <p className="font-medium text-sm truncate">{profile.fullName || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/60 border border-border">
+                      <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Age</p>
+                        <p className="font-medium text-sm">{profile.age || "—"}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/60 border border-border">
+                      <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Gender</p>
+                        <p className="font-medium text-sm">{profile.gender || "—"}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Lock className="h-3 w-3" />
+                    Name, age, and gender can only be changed by resetting the app.
+                  </p>
                 </div>
-                <div>
-                  <Label>Gender</Label>
-                  <Select value={editProfile.gender} onValueChange={v => setEditProfile(prev => ({ ...prev, gender: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Male">Male</SelectItem>
-                      <SelectItem value="Female">Female</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                      <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
-                    </SelectContent>
-                  </Select>
+              ) : (
+                /* Editable identity fields — registration not yet completed */
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <Input id="fullName" placeholder="Enter your full name" value={editProfile.fullName} onChange={e => setEditProfile(prev => ({ ...prev, fullName: e.target.value }))} maxLength={100} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="age">Age</Label>
+                      <Input id="age" type="number" min="1" max="120" placeholder="Age" value={editProfile.age} onChange={e => setEditProfile(prev => ({ ...prev, age: e.target.value }))} />
+                    </div>
+                    <div>
+                      <Label>Gender</Label>
+                      <Select value={editProfile.gender} onValueChange={v => setEditProfile(prev => ({ ...prev, gender: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                          <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="height">Height</Label>
@@ -412,7 +478,20 @@ export default function Profile() {
             <div>
               <Label htmlFor="email">Your Email</Label>
               <p className="text-sm text-muted-foreground mb-2">Receive weekly and monthly progress reports</p>
-              <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+              {isRegistrationCompleted && registration?.email?.trim() ? (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/60 border border-border">
+                  <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm flex-1 truncate">{email || registration.email}</span>
+                </div>
+              ) : (
+                <Input id="email" type="email" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} />
+              )}
+              {isRegistrationCompleted && registration?.email?.trim() && (
+                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                  <Lock className="h-3 w-3" />
+                  Email can only be changed by resetting the app.
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <div><Label htmlFor="weekly-reports">Weekly Reports</Label><p className="text-sm text-muted-foreground">Get a summary every week</p></div>

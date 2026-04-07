@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Clock, ChefHat, ChevronDown, ChevronUp, Utensils, Sunrise, Sun, Moon, UtensilsCrossed } from "lucide-react";
+import { Check, Clock, ChefHat, ChevronDown, ChevronUp, Utensils, Sunrise, Sun, Moon, UtensilsCrossed, Lock } from "lucide-react";
 import { DynamicMeal } from "@/lib/meal-plan";
 import { markMealComplete, isMealComplete, getAlternativeMealForToday } from "@/lib/storage";
 import { MealLogDialog } from "./MealLogDialog";
@@ -10,9 +10,11 @@ import { useStorageSync } from "@/hooks/use-storage-sync";
 
 interface DynamicMealCardProps {
   meal: DynamicMeal;
+  isLocked?: boolean;
+  dayNumber?: number;
 }
 
-export const DynamicMealCard = ({ meal }: DynamicMealCardProps) => {
+export const DynamicMealCard = ({ meal, isLocked = false, dayNumber }: DynamicMealCardProps) => {
   const [completed, setCompleted] = useState(isMealComplete(meal.id));
   const [alternativeMeal, setAlternativeMeal] = useState(getAlternativeMealForToday(meal.id));
   const [showRecipe, setShowRecipe] = useState(false);
@@ -82,7 +84,7 @@ export const DynamicMealCard = ({ meal }: DynamicMealCardProps) => {
   }
 
   return (
-    <Card className={`transition-all duration-300 hover:shadow-md ${completed ? 'opacity-60' : ''}`}>
+    <Card className={`transition-all duration-300 ${isLocked ? 'opacity-50' : 'hover:shadow-md'} ${completed && !isLocked ? 'opacity-60' : ''}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2">
@@ -96,12 +98,21 @@ export const DynamicMealCard = ({ meal }: DynamicMealCardProps) => {
               </div>
             </div>
           </div>
-          {completed && (
+          {isLocked ? (
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex items-center gap-1 text-muted-foreground text-sm font-medium">
+                <Lock className="h-4 w-4" />
+              </div>
+              {dayNumber && (
+                <span className="text-xs text-muted-foreground">Available Day {dayNumber}</span>
+              )}
+            </div>
+          ) : completed ? (
             <div className="flex items-center gap-1 text-success text-sm font-medium">
               <Check className="h-4 w-4" />
               Done
             </div>
-          )}
+          ) : null}
         </div>
 
         <p className="text-sm text-muted-foreground mb-2">{meal.description}</p>
@@ -115,6 +126,7 @@ export const DynamicMealCard = ({ meal }: DynamicMealCardProps) => {
         </div>
 
         <div className="space-y-2">
+          {/* View Recipe — always available, even on locked days */}
           <Button
             onClick={() => setShowRecipe(!showRecipe)}
             size="sm"
@@ -153,7 +165,8 @@ export const DynamicMealCard = ({ meal }: DynamicMealCardProps) => {
             </div>
           )}
 
-          {!completed && (
+          {/* Mark Complete & Log Alternative — disabled on locked days */}
+          {!isLocked && !completed && (
             <>
               <Button onClick={handleComplete} size="sm" className="w-full">
                 <Check className="h-4 w-4 mr-2" />
@@ -161,6 +174,13 @@ export const DynamicMealCard = ({ meal }: DynamicMealCardProps) => {
               </Button>
               <MealLogDialog mealId={meal.id} onAlternativeLogged={refreshState} />
             </>
+          )}
+
+          {isLocked && (
+            <p className="text-xs text-center text-muted-foreground pt-1 flex items-center justify-center gap-1">
+              <Lock className="h-3 w-3" />
+              Unlocks when Day {dayNumber} begins
+            </p>
           )}
         </div>
       </CardContent>

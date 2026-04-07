@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Plus, Camera, Upload, Loader2, Sparkles, Pencil, AlertTriangle } from "lucide-react";
 import { logAlternativeMeal, markMealComplete, logCheat } from "@/lib/storage";
 import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/lib/push-notifications";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -232,7 +231,7 @@ export const MealLogDialog = ({ mealId, onAlternativeLogged }: MealLogDialogProp
           ai_analysis: analysis.description,
           notes: notes || null,
           meal_type: 'meal',
-          device_id: getDeviceId()
+          device_id: localStorage.getItem('leantrack_device_id') || 'unknown'
         });
 
       if (insertError) {

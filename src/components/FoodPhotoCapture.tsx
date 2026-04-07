@@ -6,7 +6,6 @@
  import { Textarea } from "@/components/ui/textarea";
  import { Camera, Upload, Loader2, Sparkles } from "lucide-react";
  import { supabase } from "@/integrations/supabase/client";
- import { getDeviceId } from "@/lib/push-notifications";
  import { toast } from "sonner";
  
  interface FoodAnalysis {
@@ -129,7 +128,7 @@
            ai_analysis: analysis.description,
            notes: notes || null,
            meal_type: 'meal',
-           device_id: getDeviceId()
+           device_id: localStorage.getItem('leantrack_device_id') || 'unknown'
          });
  
        if (insertError) {
