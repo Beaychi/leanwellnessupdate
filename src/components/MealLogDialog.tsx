@@ -196,6 +196,12 @@ export const MealLogDialog = ({ mealId, onAlternativeLogged }: MealLogDialogProp
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
+      
+      // Validate file size (max 10MB)
+      if (byteArray.length > 10 * 1024 * 1024) {
+        toast.error('Image too large. Maximum size is 10MB.');
+        return;
+      }
       const blob = new Blob([byteArray], { type: 'image/jpeg' });
 
       const { error: uploadError } = await supabase.storage
@@ -290,6 +296,12 @@ export const MealLogDialog = ({ mealId, onAlternativeLogged }: MealLogDialogProp
           byteNumbers[i] = byteCharacters.charCodeAt(i);
         }
         const byteArray = new Uint8Array(byteNumbers);
+
+        // Validate file size (max 10MB)
+        if (byteArray.length > 10 * 1024 * 1024) {
+          toast.error('Image too large. Maximum size is 10MB.');
+          return;
+        }
         const blob = new Blob([byteArray], { type: 'image/jpeg' });
 
         const { data: uploadData, error: uploadError } = await supabase.storage

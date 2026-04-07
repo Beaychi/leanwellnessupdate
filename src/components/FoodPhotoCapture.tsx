@@ -80,27 +80,34 @@
      if (!analysis || !imagePreview) return;
  
      setIsSaving(true);
-     try {
-       // Upload image to storage
-       const fileName = `food_${Date.now()}.jpg`;
-       const base64Data = imagePreview.split(',')[1];
-       const byteCharacters = atob(base64Data);
-       const byteNumbers = new Array(byteCharacters.length);
-       for (let i = 0; i < byteCharacters.length; i++) {
-         byteNumbers[i] = byteCharacters.charCodeAt(i);
-       }
-       const byteArray = new Uint8Array(byteNumbers);
-       const blob = new Blob([byteArray], { type: 'image/jpeg' });
- 
-       const { data: uploadData, error: uploadError } = await supabase.storage
-         .from('food-photos')
-         .upload(fileName, blob, { contentType: 'image/jpeg' });
- 
-       if (uploadError) {
-         console.error('Upload error:', uploadError);
-         toast.error('Failed to save photo');
-         return;
-       }
+    try {
+      // Upload image to storage with validation
+      const fileName = `food_${Date.now()}.jpg`;
+      const base64Data = imagePreview.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      
+      // Validate file size (max 10MB)
+      if (byteArray.length > 10 * 1024 * 1024) {
+        toast.error('Image too large. Maximum size is 10MB.');
+        return;
+      }
+
+      const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('food-photos')
+        .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Failed to save photo');
+        return;
+      }
  
        // Get public URL
        const { data: urlData } = supabase.storage

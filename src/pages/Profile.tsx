@@ -76,28 +76,25 @@ export default function Profile() {
   }, []);
 
   const initEmail = async () => {
+    // Load email preferences from localStorage (email_subscriptions table is not publicly readable)
     try {
-      const { data } = await supabase
-        .from('email_subscriptions')
-        .select('*')
-        .limit(1)
-        .maybeSingle();
-
-      if (data?.email) {
-        setEmail(data.email);
-        setWeeklyReports(data.weekly_reports);
-        setMonthlyReports(data.monthly_reports);
-        setEmailSubscriptionId(data.id);
-        setSavedEmail(data.email);
-        setSavedWeeklyReports(data.weekly_reports);
-        setSavedMonthlyReports(data.monthly_reports);
-        return;
+      const savedPrefs = localStorage.getItem('leantrack_email_prefs');
+      if (savedPrefs) {
+        const prefs = JSON.parse(savedPrefs);
+        if (prefs.email?.trim()) {
+          setEmail(prefs.email);
+          setWeeklyReports(prefs.weeklyReports ?? true);
+          setMonthlyReports(prefs.monthlyReports ?? true);
+          setEmailSubscriptionId(prefs.subscriptionId || null);
+          setSavedEmail(prefs.email);
+          setSavedWeeklyReports(prefs.weeklyReports ?? true);
+          setSavedMonthlyReports(prefs.monthlyReports ?? true);
+          return;
+        }
       }
-    } catch (error) {
-      console.error('Error loading email subscription:', error);
-    }
+    } catch {}
 
-    // Fall back to registration data if no Supabase record found
+    // Fall back to registration data
     try {
       const regData = localStorage.getItem('leantrack_registration');
       if (regData) {
@@ -120,15 +117,20 @@ export default function Profile() {
     setIsSavingEmail(true);
     try {
       const isFirstSave = !emailSubscriptionId;
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('email_subscriptions')
-        .upsert({ email, weekly_reports: weeklyReports, monthly_reports: monthlyReports }, { onConflict: 'email' })
-        .select().single();
+        .upsert({ email, weekly_reports: weeklyReports, monthly_reports: monthlyReports }, { onConflict: 'email' });
       if (error) throw error;
-      setEmailSubscriptionId(data.id);
+      // Generate a local reference ID since SELECT is restricted
+      const localId = emailSubscriptionId || crypto.randomUUID();
+      setEmailSubscriptionId(localId);
       setSavedEmail(email);
       setSavedWeeklyReports(weeklyReports);
       setSavedMonthlyReports(monthlyReports);
+      // Cache preferences locally since table is not publicly readable
+      localStorage.setItem('leantrack_email_prefs', JSON.stringify({
+        email, weeklyReports, monthlyReports, subscriptionId: localId
+      }));
       toast.success(isFirstSave ? "Email preferences saved!" : "Preferences updated!");
     } catch (error: any) {
       toast.error(error.message || "Failed to save email preferences");
@@ -154,10 +156,14 @@ export default function Profile() {
     if (!emailSubscriptionId) { toast.info("No subscription to remove"); return; }
     setIsSavingEmail(true);
     try {
-      const { error } = await supabase.from('email_subscriptions').delete().eq('id', emailSubscriptionId);
+      // Use edge function for unsubscribe since DELETE is restricted to service_role
+      const { error } = await supabase.functions.invoke('unsubscribe-email', {
+        body: { subscriptionId: emailSubscriptionId }
+      });
       if (error) throw error;
       setEmail(""); setWeeklyReports(true); setMonthlyReports(true);
       setEmailSubscriptionId(null); setSavedEmail(""); setSavedWeeklyReports(true); setSavedMonthlyReports(true);
+      localStorage.removeItem('leantrack_email_prefs');
       toast.success("Successfully unsubscribed from email reports");
     } catch (error: any) {
       toast.error(error.message || "Failed to unsubscribe");
@@ -371,27 +377,6 @@ export default function Profile() {
         {/* Body Measurements */}
         <MeasurementsTracker />
 
-        {/* Appearance */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="h-5 w-5" />
-              Appearance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>Dark Mode</Label>
-                <p className="text-sm text-muted-foreground">Switch between light and dark theme</p>
-              </div>
-              <Button variant="outline" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="rounded-full">
-                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Sleep Schedule */}
         <Card>

@@ -14,6 +14,7 @@ import confetti from "canvas-confetti";
 import { toast } from "sonner";
 import { pushEvents } from "@/lib/push-events";
 import { startFastingTimerNotification, stopFastingTimerNotification } from "@/lib/timer-notifications";
+import { setActiveTimer } from "@/lib/active-timer";
 
 interface FastingTimerProps {
   isOpen: boolean;

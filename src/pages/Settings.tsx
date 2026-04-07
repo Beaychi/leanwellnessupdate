@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { SoundSettings } from "@/components/SoundSettings";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   RotateCcw, 
@@ -22,6 +22,9 @@ import {
   Loader2,
   Trash2,
   FileSpreadsheet,
+  Palette,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { getStoredData, saveStoredData, resetCycle, getDefaultData, type SoundSettings as SoundSettingsType } from "@/lib/storage";
 import { toast } from "sonner";
@@ -33,15 +36,17 @@ import {
 } from "@/lib/notifications";
 import { subscribeToPush, getSubscription, saveNotificationSettings, unsubscribeFromPush, type SoundOption } from "@/lib/push-notifications";
 import { gatherExportData, downloadCSV } from "@/lib/export-data";
+import { useTheme } from "next-themes";
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
   const [settings, setSettings] = useState(getStoredData() || getDefaultData());
   const [showResetCycleDialog, setShowResetCycleDialog] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isSendingExport, setIsSendingExport] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
-  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
+  
 
   useEffect(() => {
     const data = getStoredData();
@@ -83,14 +88,9 @@ export default function Settings() {
 
     try {
       await supabase.from('food_entries').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('email_subscriptions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
       await supabase.from('notification_settings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      await supabase.from('push_subscriptions').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-      const { data: files } = await supabase.storage.from('food-photos').list();
-      if (files && files.length > 0) {
-        await supabase.storage.from('food-photos').remove(files.map(f => f.name));
-      }
+      // email_subscriptions and push_subscriptions DELETE restricted to service_role; skip client-side cleanup
+      localStorage.removeItem('leantrack_email_prefs');
     } catch (error) {
       console.error('Error clearing cloud data:', error);
     }
@@ -272,11 +272,6 @@ export default function Settings() {
     toast.success(`Movement reminder set to every ${interval} minutes`);
   };
 
-  const handleSoundChange = (type: keyof SoundSettingsType, sound: SoundOption) => {
-    const newSoundSettings = { ...settings.soundSettings, [type]: sound };
-    saveStoredData({ soundSettings: newSoundSettings });
-    setSettings({ ...settings, soundSettings: newSoundSettings });
-  };
 
   const savedEmail = getEmailFromStorage();
 
@@ -358,59 +353,31 @@ export default function Settings() {
               </>
             )}
 
-            {settings.notificationsEnabled && (
-              <>
-                <Separator />
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  disabled={isSendingTestPush}
-                  onClick={async () => {
-                    setIsSendingTestPush(true);
-                    try {
-                      const { data, error } = await supabase.functions.invoke('send-push-notification', {
-                        body: {
-                          title: 'LeanTrack Test 🎉',
-                          body: 'Background push is working! You\'ll get reminders even when the app is closed.',
-                          tag: 'leantrack-test',
-                        },
-                      });
-                      if (error) throw error;
-                      if (data?.sent > 0) {
-                        toast.success("Test push sent! Check your notification bar.");
-                      } else {
-                        toast.error("No active push subscription found. Try toggling notifications off and on.");
-                      }
-                    } catch (e: any) {
-                      console.error('Test push error:', e);
-                      toast.error("Failed to send test push: " + (e.message || 'Unknown error'));
-                    } finally {
-                      setIsSendingTestPush(false);
-                    }
-                  }}
-                >
-                  {isSendingTestPush ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Bell className="mr-2 h-4 w-4" />
-                  )}
-                  Send Test Background Push
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Sends a real push notification via the server — works even when the app is closed
-                </p>
-              </>
-            )}
           </CardContent>
         </Card>
 
-        {/* Sound Settings */}
-        <SoundSettings 
-          sounds={settings.soundSettings || getDefaultData().soundSettings}
-          onSoundChange={handleSoundChange}
-        />
+        {/* Appearance */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Appearance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Dark Mode</Label>
+                <p className="text-sm text-muted-foreground">Switch between light and dark theme</p>
+              </div>
+              <Button variant="outline" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="rounded-full">
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* Cycle Management */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
