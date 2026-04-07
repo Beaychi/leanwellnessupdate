@@ -33,9 +33,19 @@ const App = () => {
     if (!data) {
       saveStoredData(getDefaultData());
       setShowRegistration(true);
-    } else if (!data.onboardingCompleted || !registration?.registrationCompleted) {
+    } else if (!data.onboardingCompleted) {
+      // First time or never finished onboarding — show registration
+      setShowRegistration(true);
+    } else if (!registration?.registrationCompleted && !registration?.skippedRegistration) {
+      // Has onboarding but somehow has no registration state — show it
       setShowRegistration(true);
     }
+    // If user skipped (skippedRegistration: true), we don't auto-show.
+    // They can trigger it manually from their Profile page.
+
+    // Listen for manual re-trigger from Profile page
+    const handleShowRegistration = () => setShowRegistration(true);
+    window.addEventListener('showRegistration', handleShowRegistration);
 
     // Register service worker for push notifications
     registerServiceWorker();
@@ -52,6 +62,8 @@ const App = () => {
         movementInterval: data.movementInterval || 45,
       }, data.movementReminders);
     }
+
+    return () => window.removeEventListener('showRegistration', handleShowRegistration);
   }, []);
 
   // Listen for service worker timer action messages (from notification buttons)

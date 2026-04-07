@@ -868,85 +868,87 @@ export const Registration = ({ onComplete }: RegistrationProps) => {
   const isLastStep = step === TOTAL_STEPS - 1;
 
   return (
-    <div className="fixed inset-0 bg-background z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <Card className="w-full max-w-lg my-auto">
-        <CardContent className="p-6 sm:p-8">
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={step}
-              custom={direction}
-              variants={stepVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Progress bar */}
-          <div className="mt-6 mb-4">
-            <div className="flex justify-between text-xs text-muted-foreground mb-2">
-              <span>Step {step + 1} of {TOTAL_STEPS}</span>
-              <span>{Math.round(((step + 1) / TOTAL_STEPS) * 100)}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
+    <div className="fixed inset-0 bg-background z-50 overflow-y-auto">
+      <div className="min-h-full flex items-start justify-center py-8 px-4">
+        <Card className="w-full max-w-lg">
+          <CardContent className="p-6 sm:p-8">
+            <AnimatePresence mode="wait" custom={direction}>
               <motion.div
-                className="h-full rounded-full bg-primary"
-                initial={false}
-                animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-              />
-            </div>
-          </div>
+                key={step}
+                custom={direction}
+                variants={stepVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
 
-          {/* Navigation */}
-          <div className="flex gap-3">
-            {step > 0 && (
-              <Button variant="outline" onClick={handleBack} className="flex-1">
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Back
-              </Button>
-            )}
-            <Button
-              onClick={handleNext}
-              className="flex-1"
-              size="lg"
-              disabled={!canProceed()}
-            >
-              {isLastStep ? (
-                <>
-                  <Rocket className="h-5 w-5 mr-2" />
-                  Let's Go!
-                </>
-              ) : (
-                <>
-                  Next
-                  <ChevronRight className="ml-1 h-5 w-5" />
-                </>
+            {/* Progress bar */}
+            <div className="mt-8 mb-5">
+              <div className="flex justify-between text-xs text-muted-foreground mb-2">
+                <span>Step {step + 1} of {TOTAL_STEPS}</span>
+                <span>{Math.round(((step + 1) / TOTAL_STEPS) * 100)}%</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-primary"
+                  initial={false}
+                  animate={{ width: `${((step + 1) / TOTAL_STEPS) * 100}%` }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                />
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex gap-3">
+              {step > 0 && (
+                <Button variant="outline" onClick={handleBack} className="flex-1">
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Back
+                </Button>
               )}
-            </Button>
-          </div>
+              <Button
+                onClick={handleNext}
+                className="flex-1"
+                size="lg"
+                disabled={!canProceed()}
+              >
+                {isLastStep ? (
+                  <>
+                    <Rocket className="h-5 w-5 mr-2" />
+                    Let's Go!
+                  </>
+                ) : (
+                  <>
+                    Next
+                    <ChevronRight className="ml-1 h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </div>
 
           {step === 0 && (
             <Button
               onClick={() => {
-                const defaultData = getDefaultRegistration();
-                defaultData.registrationCompleted = true;
-                saveRegistration(defaultData);
+                // Save whatever the user entered (partial), mark as skipped but NOT completed
+                const partialData = { ...data, registrationCompleted: false, skippedRegistration: true };
+                saveRegistration(partialData);
                 saveStoredData({ onboardingCompleted: true });
                 onComplete();
               }}
               variant="ghost"
-              className="w-full mt-2"
+              className="w-full mt-3 text-muted-foreground hover:text-foreground"
               size="sm"
             >
               Skip for now
             </Button>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

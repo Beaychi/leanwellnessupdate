@@ -134,13 +134,20 @@ export default function Meals() {
     generateMealPlan(prefs);
   };
 
-  const isDayLocked = (day: number) => day > currentDay;
-
-  const handleDaySelect = (day: string) => {
-    const dayNum = parseInt(day);
-    if (!isDayLocked(dayNum)) {
-      setSelectedDay(day);
+  const handleGenerateClick = () => {
+    const registration = getRegistration();
+    if (!registration?.registrationCompleted || !registration?.country) {
+      toast.error("Complete your profile first", {
+        description: "A completed profile is needed to generate a personalised meal plan.",
+        action: {
+          label: "Go to Profile",
+          onClick: () => window.dispatchEvent(new CustomEvent('showRegistration')),
+        },
+        duration: 6000,
+      });
+      return;
     }
+    setShowQuestionnaire(true);
   };
 
   const currentDayPlan = mealPlan?.plan.find(d => d.day === parseInt(selectedDay));
@@ -229,7 +236,7 @@ export default function Meals() {
                 </div>
               </div>
 
-              <Button onClick={() => setShowQuestionnaire(true)} size="lg" className="min-w-48" disabled={selectedMealTypes.length === 0}>
+              <Button onClick={handleGenerateClick} size="lg" className="min-w-48" disabled={selectedMealTypes.length === 0}>
                 <Sparkles className="h-5 w-5 mr-2" />
                 Generate Meal Plan
               </Button>
@@ -265,24 +272,17 @@ export default function Meals() {
             </div>
 
             {/* Day Tabs */}
-            <Tabs value={selectedDay} onValueChange={handleDaySelect}>
+            <Tabs value={selectedDay} onValueChange={setSelectedDay}>
               <TabsList className="w-full grid grid-cols-7 mb-6">
-                {Array.from({ length: 7 }, (_, i) => i + 1).map(day => {
-                  const locked = isDayLocked(day);
-                  return (
-                    <TabsTrigger
-                      key={day}
-                      value={day.toString()}
-                      disabled={locked}
-                      className={locked ? "opacity-50 cursor-not-allowed" : ""}
-                    >
-                      {locked ? <Lock className="h-3 w-3" /> : `D${day}`}
-                    </TabsTrigger>
-                  );
-                })}
+                {Array.from({ length: 7 }, (_, i) => i + 1).map(day => (
+                  <TabsTrigger key={day} value={day.toString()}>
+                    D{day}
+                  </TabsTrigger>
+                ))}
               </TabsList>
 
               {mealPlan.plan.map(day => {
+                const isFutureDay = day.day > currentDay;
                 const dayMeals = day.meals.filter(meal =>
                   meal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                   meal.description.toLowerCase().includes(searchTerm.toLowerCase())
@@ -293,11 +293,16 @@ export default function Meals() {
                       <Card className="bg-muted/50">
                         <CardContent className="p-4">
                           <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-semibold text-lg">
+                            <h3 className="font-semibold text-lg flex items-center gap-2">
                               Day {day.day}
                               {day.day === currentDay && (
-                                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                                <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
                                   Today
+                                </span>
+                              )}
+                              {isFutureDay && (
+                                <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded-full flex items-center gap-1">
+                                  <Lock className="h-3 w-3" /> Upcoming
                                 </span>
                               )}
                             </h3>
@@ -312,7 +317,12 @@ export default function Meals() {
                       <div className="space-y-3">
                         {dayMeals.length > 0 ? (
                           dayMeals.map(meal => (
-                            <DynamicMealCard key={meal.id} meal={meal} />
+                            <DynamicMealCard
+                              key={meal.id}
+                              meal={meal}
+                              isLocked={isFutureDay}
+                              dayNumber={day.day}
+                            />
                           ))
                         ) : (
                           <Card>
