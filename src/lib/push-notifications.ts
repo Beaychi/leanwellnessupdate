@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const VAPID_PUBLIC_KEY = 'BJoWzr4FqVutEVTKBkG7m6XvxY6Zl9GRpfIDJrTFWjKEpoLruw2N2FqGKJeVj6gUwHxGcAk7JI8Z7pVP10BaNDY';
+const VAPID_PUBLIC_KEY = 'BGZK9HEnXRrnHK__JHZ2NtSa253MP_m_wMg_N8BgS0Z5gzI2BXtsIPJ3eClVVAWeVTcYjrcDsS4ckOdqhJDhYPc';
 
 // Sound options available for notifications
 export const SOUND_OPTIONS = [

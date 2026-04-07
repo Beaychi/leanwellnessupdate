@@ -13,12 +13,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const url = new URL(req.url);
-    const email = url.searchParams.get("email");
-    const subscriptionId = url.searchParams.get("id");
+    let email: string | null = null;
+    let subscriptionId: string | null = null;
 
-    if (!email) {
-      return new Response(generateHtmlPage("Error", "Invalid unsubscribe link. Email parameter missing.", false), {
+    // Support both GET (email links) and POST (in-app unsubscribe)
+    if (req.method === "POST") {
+      const body = await req.json();
+      email = body.email || null;
+      subscriptionId = body.subscriptionId || null;
+    } else {
+      const url = new URL(req.url);
+      email = url.searchParams.get("email");
+      subscriptionId = url.searchParams.get("id");
+    }
+
+    if (!email && !subscriptionId) {
+      return new Response(generateHtmlPage("Error", "Invalid unsubscribe request. Email or subscription ID required.", false), {
         status: 400,
         headers: { "Content-Type": "text/html", ...corsHeaders },
       });

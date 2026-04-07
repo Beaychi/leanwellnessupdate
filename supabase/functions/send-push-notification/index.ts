@@ -13,17 +13,18 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Use env secrets, fallback to generated keys for this project
-    const vapidPublicKey = 'BJoWzr4FqVutEVTKBkG7m6XvxY6Zl9GRpfIDJrTFWjKEpoLruw2N2FqGKJeVj6gUwHxGcAk7JI8Z7pVP10BaNDY';
-    const vapidPrivateKey = 'XSkK_9w3ALEtn8XLNd3fSQl6apYZZMDX4T22SfNksGA';
+    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      throw new Error('VAPID keys not configured');
+    }
 
     if (!supabaseUrl || !supabaseServiceKey) {
       throw new Error('Supabase configuration missing');
     }
-
-    console.log(`VAPID public key length: ${vapidPublicKey.length}, private key length: ${vapidPrivateKey.length}`);
 
     webpush.setVapidDetails(
       'mailto:notifications@leantrack.app',
