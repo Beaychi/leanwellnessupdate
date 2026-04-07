@@ -33,13 +33,26 @@ serve(async (req: Request) => {
     );
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { title, body, icon, tag, subscriptionId } = await req.json();
+    const { title, body, icon, tag, subscriptionId, endpoint } = await req.json();
 
     console.log(`Sending push notification: ${title} - ${body}`);
 
+    // Always scope to a specific device. Prefer `endpoint` (passed by the
+    // client to target its own subscription), fall back to `subscriptionId`
+    // (used by scheduled server-side jobs that already know the row id).
+    // Never broadcast to all devices — that would notify every user.
     let query = supabase.from('push_subscriptions').select('*');
-    if (subscriptionId) {
+    if (endpoint) {
+      query = query.eq('endpoint', endpoint);
+    } else if (subscriptionId) {
       query = query.eq('id', subscriptionId);
+    } else {
+      // No targeting info supplied — refuse to broadcast.
+      console.warn('send-push-notification called without endpoint or subscriptionId — skipping');
+      return new Response(
+        JSON.stringify({ success: false, message: 'No target endpoint or subscriptionId provided' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const { data: subscriptions, error: fetchError } = await query;
