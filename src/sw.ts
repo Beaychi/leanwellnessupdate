@@ -85,14 +85,35 @@ self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event.action);
   event.notification.close();
 
-  if (event.action === 'dismiss') return;
+  const action = event.action;
 
+  // Timer action buttons — forward to the app so the timer can react
+  if (['pause', 'resume', 'stop', 'cancel'].includes(action)) {
+    event.waitUntil(
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        // Deliver TIMER_ACTION to every open page so ExerciseTimer / FastingTimer reacts
+        clientList.forEach(client => client.postMessage({ type: 'TIMER_ACTION', action }));
+
+        // For stop / cancel, bring the app to the foreground so the user
+        // sees the result (e.g. end-early confirmation or reset state)
+        if (action === 'stop' || action === 'cancel') {
+          const win = clientList.find(c => 'focus' in c) as WindowClient | undefined;
+          if (win) return win.focus();
+          return self.clients.openWindow('/');
+        }
+      })
+    );
+    return;
+  }
+
+  if (action === 'dismiss') return;
+
+  // Default tap — open / focus the app
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ('focus' in client) return client.focus();
-      }
-      if (self.clients.openWindow) return self.clients.openWindow('/');
+      const win = clientList.find(c => 'focus' in c) as WindowClient | undefined;
+      if (win) return win.focus();
+      return self.clients.openWindow('/');
     })
   );
 });
